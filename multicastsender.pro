@@ -2,7 +2,7 @@ QT = core
 
 CONFIG += c++17 cmdline
 
-QT += network
+QT += network xml
 requires(qtConfig(udpsocket))
 
 HEADERS       = sender.h

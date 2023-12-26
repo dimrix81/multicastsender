@@ -104,9 +104,10 @@ void quickSort(double values[], int low, int high)
     }
 }
 
-Sender::Sender(const uint32_t version_protocol_, const QString &ip, double x_, QObject *parent)
+Sender::Sender(const uint32_t version_protocol_, const QString &ip, const uint32_t port_, double x_, QObject *parent)
     : QObject(parent),
     groupAddress4(ip),
+    port(port_),
     version_protocol(version_protocol_),
     x(x_)
 {
@@ -175,7 +176,7 @@ void Sender::sendDatagram(QByteArray *answer)
 {
     quint16 crc = Crc16((uchar * )(answer->data()), answer->length());
     *answer += QByteArray::fromRawData((const char *)&crc, sizeof(crc));
-    udpSocket4.writeDatagram(*answer, groupAddress4, 45454);
+    udpSocket4.writeDatagram(*answer, groupAddress4, port);
     timer_timeout.start(1000);
 }
 

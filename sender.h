@@ -15,7 +15,7 @@ class Sender : public QObject
     Q_OBJECT
 
 public:
-    explicit Sender(const uint32_t version_protocol, const QString &ip, double x, QObject *parent = nullptr);
+    explicit Sender(const uint32_t version_protocol, const QString &ip, const uint32_t port, double x, QObject *parent = nullptr);
     ~Sender();
 
 private slots:
@@ -32,6 +32,7 @@ private:
     QTimer timer_start;
     QTimer timer_timeout;
     QHostAddress groupAddress4;
+    const uint32_t port;
     double *datagram_from_server = nullptr;
     uint32_t size_array;
     uint32_t link;
