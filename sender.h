@@ -4,20 +4,26 @@
 #ifndef SENDER_H
 #define SENDER_H
 
-#include <QtWidgets>
-#include <QtNetwork>
-#include <QtCore>
+// #include <QtWidgets>
+// #include <QtNetwork>
+// #include <QtCore>
+// #include <QDialog>
+#include <QHostAddress>
+#include <QUdpSocket>
+#include <QVector>
+#include <QObject>
+#include <QTimer>
 
-class Sender : public QDialog
+class Sender : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit Sender(const uint32_t version_protocol, const QString &ip, double x, QWidget *parent = nullptr);
+    explicit Sender(const uint32_t version_protocol, const QString &ip, double x, QObject *parent = nullptr);
     ~Sender();
 
 private slots:
-    void ttlChanged(int newTtl);
+    // void ttlChanged(int newTtl);
     // void startSending();
     void TimerOn();
     void TimerOn1();
@@ -28,8 +34,8 @@ private slots:
     void saveFile();
 
 private:
-    QLabel *statusLabelMy = nullptr;
-    QLabel *statusLabel = nullptr;
+    // QLabel *statusLabelMy = nullptr;
+    // QLabel *statusLabel = nullptr;
     // QPushButton *startButton = nullptr;
     QUdpSocket udpSocket4;
     // QUdpSocket udpSocket6;

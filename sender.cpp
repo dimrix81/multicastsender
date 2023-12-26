@@ -1,6 +1,6 @@
 // Copyright (C) 2017 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
-
+#include <QCoreApplication>
 #include "sender.h"
 #include "qfile.h"
 
@@ -104,8 +104,8 @@ void quickSort(double values[], int low, int high)
     }
 }
 
-Sender::Sender(const uint32_t version_protocol_, const QString &ip, double x_, QWidget *parent)
-    : QDialog(parent),
+Sender::Sender(const uint32_t version_protocol_, const QString &ip, double x_, QObject *parent)
+    : QObject(parent),
     groupAddress4(ip),
     version_protocol(version_protocol_),
     x(x_)
@@ -113,39 +113,39 @@ Sender::Sender(const uint32_t version_protocol_, const QString &ip, double x_, Q
     // force binding to their respective families
     udpSocket4.bind(QHostAddress(QHostAddress::AnyIPv4), 0);
 
-    statusLabelMy = new QLabel(tr("statusLabelMy"));
+    // statusLabelMy = new QLabel(tr("statusLabelMy"));
 
-    QString msg = tr("Ready to multicast datagrams to groups %1 and [%2] on port 45454").arg(groupAddress4.toString());
-    statusLabel = new QLabel(msg);
+    // QString msg = tr("Ready to multicast datagrams to groups %1 and [%2] on port 45454").arg(groupAddress4.toString());
+    // statusLabel = new QLabel(msg);
 
-    auto ttlLabel = new QLabel(tr("TTL for IPv4 multicast datagrams:"));
-    auto ttlSpinBox = new QSpinBox;
-    ttlSpinBox->setRange(0, 255);
+    // auto ttlLabel = new QLabel(tr("TTL for IPv4 multicast datagrams:"));
+    // auto ttlSpinBox = new QSpinBox;
+    // ttlSpinBox->setRange(0, 255);
 
-    auto ttlLayout = new QHBoxLayout;
-    ttlLayout->addWidget(ttlLabel);
-    ttlLayout->addWidget(ttlSpinBox);
+    // auto ttlLayout = new QHBoxLayout;
+    // ttlLayout->addWidget(ttlLabel);
+    // ttlLayout->addWidget(ttlSpinBox);
 
-    auto quitButton = new QPushButton(tr("&Quit"));
+    // auto quitButton = new QPushButton(tr("&Quit"));
 
-    auto buttonBox = new QDialogButtonBox;
-    buttonBox->addButton(quitButton, QDialogButtonBox::RejectRole);
+    // auto buttonBox = new QDialogButtonBox;
+    // buttonBox->addButton(quitButton, QDialogButtonBox::RejectRole);
 
-    connect(ttlSpinBox, &QSpinBox::valueChanged, this, &Sender::ttlChanged);
-    connect(quitButton, &QPushButton::clicked, this, &Sender::close);
+    // connect(ttlSpinBox, &QSpinBox::valueChanged, this, &Sender::ttlChanged);
+    // connect(quitButton, &QPushButton::clicked, this, &Sender::close);
     connect(&timer, &QTimer::timeout, this, &Sender::TimerOn);
     connect(&timer_timeout, &QTimer::timeout, this, &Sender::TimerOn1);
     connect(&udpSocket4,SIGNAL(readyRead()),this,SLOT(readyRead()));
 
-    auto mainLayout = new QVBoxLayout;
-    mainLayout->addWidget(statusLabel);
-    mainLayout->addLayout(ttlLayout);
-    mainLayout->addWidget(buttonBox);
-    mainLayout->addWidget(statusLabelMy);
-    setLayout(mainLayout);
+    // auto mainLayout = new QVBoxLayout;
+    // mainLayout->addWidget(statusLabel);
+    // mainLayout->addLayout(ttlLayout);
+    // mainLayout->addWidget(buttonBox);
+    // mainLayout->addWidget(statusLabelMy);
+    // setLayout(mainLayout);
 
-    setWindowTitle(tr("Multicast Sender"));
-    ttlSpinBox->setValue(1);
+    // setWindowTitle(tr("Multicast Sender"));
+    // ttlSpinBox->setValue(1);
     connectToServer();
 }
 
@@ -167,22 +167,23 @@ Sender::~Sender()
     }
 }
 
-void Sender::ttlChanged(int newTtl)
-{
-    // we only set the TTL on the IPv4 socket, as that changes the multicast scope
-    udpSocket4.setSocketOption(QAbstractSocket::MulticastTtlOption, newTtl);
-}
+// void Sender::ttlChanged(int newTtl)
+// {
+//     // we only set the TTL on the IPv4 socket, as that changes the multicast scope
+//     udpSocket4.setSocketOption(QAbstractSocket::MulticastTtlOption, newTtl);
+// }
 
 void Sender::TimerOn1()
 {
     qDebug()<<"Timer TimeOut";
-    statusLabelMy->setText("Timer TimeOut!");
+    // statusLabelMy->setText("Timer TimeOut!");
     if (calc_resend < 5)
     {
         if (is_connected)
         {
             QByteArray answer = QByteArray::fromRawData((const char *)&c_data_resend, sizeof(c_data_resend));
-            statusLabel->setText("Ask resend!");
+            // statusLabel->setText("Ask resend!");
+            qDebug()<<"Ask resend!";
             sendDatagram(&answer);
         }
         else
@@ -290,14 +291,14 @@ void Sender::readyRead()
             }
             default:
                 qDebug() << "Unknow";
-                statusLabelMy->setText("Unknow!");
+                // statusLabelMy->setText("Unknow!");
                 break;
             }
         }
         else
         {
             qDebug()<<"Error crc";
-            statusLabelMy->setText("Error crc!");
+            // statusLabelMy->setText("Error crc!");
         }
         if (answer.size() > 0)
         {
@@ -323,6 +324,7 @@ void Sender::saveFile()
     {
         qDebug() << "[" << i << "] = " << datagram_from_server[i];
     }
+    qDebug() << "[999999] = " << datagram_from_server[999999];
     qDebug() << "saveFile";
     QFile file("test.bin");
     file.open(QIODevice::WriteOnly);
@@ -333,5 +335,7 @@ void Sender::saveFile()
     const QByteArray in = QByteArray::fromRawData((const char *)datagram_from_server, qsizetype(sizeof(double) * size_array));
     file.write(in);
     file.close();
-    statusLabelMy->setText("End!");
+    // statusLabelMy->setText("End!");
+    _sleep(5000);
+    QCoreApplication::quit();
 }
