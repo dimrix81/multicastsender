@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <settings>
 	<host>192.168.0.122</host>
 	<port>45454</port>
-	<value_x>2000</value_x>
-	<version>1</version>
 </settings>
+<data>
+	<value_x>200</value_x>
+</data>
