@@ -3,6 +3,7 @@
 #include <QCoreApplication>
 #include "sender.h"
 #include "qfile.h"
+#include "QThread"
 
 static const quint16 wCRCTable[] = {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
@@ -41,7 +42,6 @@ static const quint16 wCRCTable[] = {
 static const quint8 c_version_p = 0x00;
 static const quint8 c_data_size = 0x01;
 static const quint8 c_data_send = 0x02;
-// static const quint8 c_data_ok = 0x02;
 static const quint8 c_data_resend = 0x03;
 static const quint8 c_end_data = 0x0F;
 static const quint8 c_error = 0xFF;
@@ -110,42 +110,11 @@ Sender::Sender(const uint32_t version_protocol_, const QString &ip, double x_, Q
     version_protocol(version_protocol_),
     x(x_)
 {
-    // force binding to their respective families
     udpSocket4.bind(QHostAddress(QHostAddress::AnyIPv4), 0);
-
-    // statusLabelMy = new QLabel(tr("statusLabelMy"));
-
-    // QString msg = tr("Ready to multicast datagrams to groups %1 and [%2] on port 45454").arg(groupAddress4.toString());
-    // statusLabel = new QLabel(msg);
-
-    // auto ttlLabel = new QLabel(tr("TTL for IPv4 multicast datagrams:"));
-    // auto ttlSpinBox = new QSpinBox;
-    // ttlSpinBox->setRange(0, 255);
-
-    // auto ttlLayout = new QHBoxLayout;
-    // ttlLayout->addWidget(ttlLabel);
-    // ttlLayout->addWidget(ttlSpinBox);
-
-    // auto quitButton = new QPushButton(tr("&Quit"));
-
-    // auto buttonBox = new QDialogButtonBox;
-    // buttonBox->addButton(quitButton, QDialogButtonBox::RejectRole);
-
-    // connect(ttlSpinBox, &QSpinBox::valueChanged, this, &Sender::ttlChanged);
-    // connect(quitButton, &QPushButton::clicked, this, &Sender::close);
-    connect(&timer, &QTimer::timeout, this, &Sender::TimerOn);
+    connect(&timer_start, &QTimer::timeout, this, &Sender::TimerOn);
     connect(&timer_timeout, &QTimer::timeout, this, &Sender::TimerOn1);
     connect(&udpSocket4,SIGNAL(readyRead()),this,SLOT(readyRead()));
 
-    // auto mainLayout = new QVBoxLayout;
-    // mainLayout->addWidget(statusLabel);
-    // mainLayout->addLayout(ttlLayout);
-    // mainLayout->addWidget(buttonBox);
-    // mainLayout->addWidget(statusLabelMy);
-    // setLayout(mainLayout);
-
-    // setWindowTitle(tr("Multicast Sender"));
-    // ttlSpinBox->setValue(1);
     connectToServer();
 }
 
@@ -167,22 +136,14 @@ Sender::~Sender()
     }
 }
 
-// void Sender::ttlChanged(int newTtl)
-// {
-//     // we only set the TTL on the IPv4 socket, as that changes the multicast scope
-//     udpSocket4.setSocketOption(QAbstractSocket::MulticastTtlOption, newTtl);
-// }
-
 void Sender::TimerOn1()
 {
     qDebug()<<"Timer TimeOut";
-    // statusLabelMy->setText("Timer TimeOut!");
     if (calc_resend < 5)
     {
         if (is_connected)
         {
             QByteArray answer = QByteArray::fromRawData((const char *)&c_data_resend, sizeof(c_data_resend));
-            // statusLabel->setText("Ask resend!");
             qDebug()<<"Ask resend!";
             sendDatagram(&answer);
         }
@@ -202,9 +163,8 @@ void Sender::TimerOn1()
 
 void Sender::TimerOn()
 {
-    timer.stop();
+    timer_start.stop();
     QByteArray answer = QByteArray::fromRawData((const char *)&c_data_size, sizeof(c_data_size));
-    // double x = 100;
     answer += QByteArray::fromRawData((const char *)&x, sizeof(x));
     quint16 crc = Crc16((uchar * )(answer.data()), answer.length());
     answer += QByteArray::fromRawData((const char *)&crc, sizeof(crc));
@@ -213,25 +173,17 @@ void Sender::TimerOn()
 
 void Sender::sendDatagram(QByteArray *answer)
 {
-    // qint64 res;
-    // qDebug()<<"answer.size() > 0";
     quint16 crc = Crc16((uchar * )(answer->data()), answer->length());
-    // qDebug()<<"crc: "<<crc;
     *answer += QByteArray::fromRawData((const char *)&crc, sizeof(crc));
-    // qDebug()<<"HEX: "<<answer.toHex()<<" size: " << answer.size();
-    // res =
     udpSocket4.writeDatagram(*answer, groupAddress4, 45454);
     timer_timeout.start(1000);
-    // qDebug()<<"sendDatagram res:" << res;
 }
 
 bool checkmeesage(QByteArray *datagram)
 {
     qint64 size_packet = datagram->size();
-    // qDebug()<<"receive:" << size_packet;
     quint16 crc_calc = Crc16((uchar * )(datagram->data()), size_packet - 2);
     quint16 *crc_control = (quint16 * )(datagram->data() + (size_packet - 2));
-    // qDebug() << "crc_calc: " << crc_calc << "crc_control: " << *crc_control;
     return (crc_calc == *crc_control);
 }
 
@@ -245,7 +197,6 @@ void Sender::readyRead()
         QByteArray datagram;
         datagram.resize(udpSocket4.pendingDatagramSize());
         udpSocket4.readDatagram(datagram.data(),datagram.size());
-        // qDebug()<<"HEX: "<<datagram.toHex()<<" size: " << datagram.size();
         if (checkmeesage(&datagram))
         {
             switch (*(quint8 * )(datagram.data())) {
@@ -254,51 +205,41 @@ void Sender::readyRead()
                 is_connected = true;
                 break;
             case c_version_p:
-                // qDebug() << "version: " << *(quint32 * )(datagram.data() + 1);
                 is_connected = true;
-                timer.start(3000);
+                timer_start.start(3000);
                 break;
             case c_data_size:
             {
-                // qDebug() << "data_size: " << *(quint32 * )(datagram.data() + 1);
                 size_array = *(quint32 * )(datagram.data() + 1);
                 datagram_from_server = (double *)malloc(size_array * sizeof(double));
-                // qDebug() << "data_size: " << size_array;
                 link = 0;
                 answer = QByteArray::fromRawData((const char *)&c_data_send, sizeof(c_data_send));
                 break;
             }
             case c_data_send:
             {
-                // qDebug() << "data_size: " << datagram.size();
                 uint32_t calc_data = link + uint32_t((datagram.size() - 3) / sizeof(double));
                 if (calc_data <= size_array)
                 {
-                    // qDebug() << "datagram_from_server[0]: " << datagram_from_server[0] << "datagram_from_server[29]: " << datagram_from_server[29];
                     memcpy((char *)(datagram_from_server + link), (datagram.data() + 1), datagram.size() - 3);
-                    // qDebug() << "datagram_from_server[0]: " << datagram_from_server[0] << "datagram_from_server[29]: " << datagram_from_server[29] << "datagram_from_server[999999]: " << datagram_from_server[999999];
-                    // link += uint32_t((datagram.size() - 3) / sizeof(double));
                     link = calc_data;
-                    // qDebug() /*<< "calc value: " << calc_data */<< " link: " << link;
                     answer = QByteArray::fromRawData((const char *)&c_data_send, sizeof(c_data_send));
                 }
                 else
                 {
-                    // qDebug() << "Error data size: " << calc_data << " > link: " << link;
+                    qDebug() << "Error data size: " << calc_data << " > link: " << link;
                 }
                 flag_is_end = (calc_data == size_array);
                 break;
             }
             default:
                 qDebug() << "Unknow";
-                // statusLabelMy->setText("Unknow!");
                 break;
             }
         }
         else
         {
             qDebug()<<"Error crc";
-            // statusLabelMy->setText("Error crc!");
         }
         if (answer.size() > 0)
         {
@@ -306,7 +247,6 @@ void Sender::readyRead()
             sendDatagram(&answer);
         }
     }
-    // qDebug()<<"END";
     if (flag_is_end)
     {
         timer_timeout.stop();
@@ -335,7 +275,6 @@ void Sender::saveFile()
     const QByteArray in = QByteArray::fromRawData((const char *)datagram_from_server, qsizetype(sizeof(double) * size_array));
     file.write(in);
     file.close();
-    // statusLabelMy->setText("End!");
-    _sleep(5000);
+    QThread::sleep(5);
     QCoreApplication::quit();
 }

@@ -4,10 +4,6 @@
 #ifndef SENDER_H
 #define SENDER_H
 
-// #include <QtWidgets>
-// #include <QtNetwork>
-// #include <QtCore>
-// #include <QDialog>
 #include <QHostAddress>
 #include <QUdpSocket>
 #include <QVector>
@@ -23,8 +19,6 @@ public:
     ~Sender();
 
 private slots:
-    // void ttlChanged(int newTtl);
-    // void startSending();
     void TimerOn();
     void TimerOn1();
     void sendDatagram(QByteArray *answer);
@@ -34,16 +28,10 @@ private slots:
     void saveFile();
 
 private:
-    // QLabel *statusLabelMy = nullptr;
-    // QLabel *statusLabel = nullptr;
-    // QPushButton *startButton = nullptr;
     QUdpSocket udpSocket4;
-    // QUdpSocket udpSocket6;
-    QTimer timer;
+    QTimer timer_start;
     QTimer timer_timeout;
     QHostAddress groupAddress4;
-    // QHostAddress groupAddress6;
-    int messageNo = 1;
     double *datagram_from_server = nullptr;
     uint32_t size_array;
     uint32_t link;
